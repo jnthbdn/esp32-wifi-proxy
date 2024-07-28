@@ -1,0 +1,7 @@
+# baudrate = 115200
+baudrate = 921600
+partition_table = "./custom_partitions.csv"
+
+[flash]
+mode = "dio"
+size = "4MB"
