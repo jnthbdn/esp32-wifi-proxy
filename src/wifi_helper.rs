@@ -90,7 +90,8 @@ pub fn create_ap_wifi<'a>(
 
     esp!(unsafe { esp_wifi_set_country(&*WIFI_COUNTRY_SETTING) })?;
 
-    wifi.set_configuration(&Configuration::AccessPoint(
+    wifi.set_configuration(&Configuration::Mixed(
+        ClientConfiguration::default(),
         generate_accespoint_configuration(main_config),
     ))?;
 
