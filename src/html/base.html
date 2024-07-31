@@ -8,8 +8,8 @@
 body {background-color: var(--purple);background: linear-gradient(45deg, var(--purple) 0%, var(--orange) 100%);font-family: sans-serif;}
 #form{margin: auto;background-color: #FFF;padding: 32px 64px;border-radius: 8px; width: 95%;box-sizing: border-box;}
 h2{text-align: center;font-variant: small-caps;margin-top: 0;}
-input{font-size: 16px;width: 100%;margin-top: 0.5em;margin-bottom: 2em;border: none;border-bottom: 1px solid lightgray;padding: 8px;background-color: #00000000;}
-input:focus{outline: none; border-color: var(--green);}input[type="submit"]{margin: 16px 0 0 0;padding: 16px 0;width: 100%;border-radius: 8px;background-color: var(--green);background: linear-gradient(90deg, var(--orange) 0%, var(--purple) 100%);color: white;font-size: 1.5em;}
+input,select{font-size: 16px;width: 100%;margin-top: 0.5em;margin-bottom: 2em;border: none;border-bottom: 1px solid lightgray;padding: 8px;background-color: #00000000;}
+input:focus,select:focus{outline: none; border-color: var(--green);}input[type="submit"]{margin: 16px 0 0 0;padding: 16px 0;width: 100%;border-radius: 8px;background-color: var(--green);background: linear-gradient(90deg, var(--orange) 0%, var(--purple) 100%);color: white;font-size: 1.5em;}
 input[type="checkbox"]{width: auto;}
 input[type="submit"]{margin: 16px 0 0 0;padding: 16px 0;width: 100%;border-radius: 8px;background-color: var(--green);background: linear-gradient(90deg, var(--orange) 0%, var(--purple) 100%);color: white;font-size: 1.5em;}
 input[type="submit"]:disabled{opacity: 0.3;}
@@ -24,17 +24,31 @@ input[type="submit"]:disabled{opacity: 0.3;}
 <h2>⚙️ Proxy Settings</h2>
 <form name="settings" method="post" action="/">
 <div class="tab_content">
-<label for="ssid">SSID: </label><input type="text" id="ssid" name="ssid" value="{SSID}" placeholder="Network SSID" maxlength="32" required/>
-<label for="pass">Passphrase: </label><div class="postfix"><input type="password" id="pass" name="pass" value="{PASS}" placeholder="Passphrase" maxlength="63" title="No WiFi auth if empty" /><span><a onclick="show_hide('pass')" title="Show/Hide password" style="cursor: pointer;">👁️</a></span></div>
-<label for="is_hidden">Hidden SSID: </label><input type="checkbox" name="is_hidden" id="is_hidden" {HIDDEN_CHECKED}/>
+<h3>Acces Point (server)</h3>
+<label for="apssid">SSID: </label><input type="text" id="apssid" name="apssid" value="{APSSID}" placeholder="Network SSID" maxlength="32" required/>
+<label for="appass">Passphrase: </label><div class="postfix"><input type="password" id="appass" name="appass" value="{APPASS}" placeholder="Passphrase" maxlength="63" title="No WiFi auth if empty" /><span><a onclick="show_hide('appass')" title="Show/Hide password" style="cursor: pointer;">👁️</a></span></div>
+<label for="apishidden">Hidden SSID: </label><input type="checkbox" name="apishidden" id="apishidden" {APHIDDEN_CHECKED}/>
+<h3>Station (client)</h3>
+<label for="stassid">SSID: </label>
+<select id="ssid_list" onchange="select_change(this)"></select>
+<input type="text" id="stassid" name="stassid" value="{STASSID}" placeholder="Network SSID" maxlength="32" style="display:none" required/>
+<label for="stapass">Passphrase: </label><div class="postfix"><input type="password" id="stapass" name="stapass" value="{STAPASS}" placeholder="Passphrase" maxlength="63" title="No WiFi auth if empty" /><span><a onclick="show_hide('stapass')" title="Show/Hide password" style="cursor: pointer;">👁️</a></span></div>
+<h3>MQTT Server</h3>
+<label for="mqttsrv">URI: </label><input type="text" id="mqttsrv" name="mqttsrv" value="{MQTTSRV}" placeholder="MQTT Server address" maxlength="128" required/>
+<label for="mqttprt">Port: </label><input type="number" id="mqttprt" name="mqttprt" min="1024" max="65535" step="1" value="{MQTTPRT}" />
 </div>
 <input type="submit" value="🚀 Save">
 </form>
 </div>
 <script type="text/javascript">
 function getById(e){return document.getElementById(e)};
+function getByClass(e){return document.getElementsByClassName(e)};
 function show_hide(i){let t=getById(i);t.type=(t.type=="password")?"text":"password";}
-document.addEventListener("DOMContentLoaded", () => setTimeout(function(){let e="{ERROR_MSG}";if(e){alert(e);};},500));
+function option_index(a,val){for(let i=0;i<a.length;i++){if(a.at(i).value==val){return i;}};return a.length-1;}
+function load_ssid(aps,val){ let s=getById("ssid_list");s.innerHTML="";for(i of aps){s.innerHTML += `<option value="${i.ssid}">${i.ssid} [${i.rssi} dB]</option>`};s.innerHTML += `<option value="">Hidden network...</option>`;s.selectedIndex=option_index(Array.from(s.options),val);s.onchange()}
+function select_change(s){let ipt=getById("stassid");if(s.selectedIndex==s.length-1){ipt.style.display="block";ipt.value=""}else{ipt.style.display="none";ipt.value=s.value;}}
+document.addEventListener("DOMContentLoaded", () => setTimeout(function(){let e="{ERROR_MSG}";if(e){alert(e);};load_ssid({AP_LIST},"{STASSID}");},500));
+
 </script>
 </body>
 </html>
