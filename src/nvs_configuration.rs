@@ -12,9 +12,13 @@ const NAMESPACE: &str = "config";
 
 const PAD_CHAR: char = 0x03 as char;
 
-pub const KEY_SSID: &str = "SSID";
-pub const KEY_PASSPHRASE: &str = "PASS";
-pub const KEY_SSID_HIDDEN: &str = "HIDDEN";
+pub const KEY_STA_SSID: &str = "STASSID";
+pub const KEY_STA_PASSPHRASE: &str = "STAPASS";
+pub const KEY_AP_SSID: &str = "APSSID";
+pub const KEY_AP_PASSPHRASE: &str = "APPASS";
+pub const KEY_AP_SSID_HIDDEN: &str = "APHIDDEN";
+pub const KEY_MQTT_SERVER: &str = "MQTTSRV";
+pub const KEY_MQTT_PORT: &str = "MQTTPRT";
 
 pub struct NvsConfiguration {
     nvs: EspNvs<NvsCustom>,
@@ -39,28 +43,60 @@ impl NvsConfiguration {
         }
     }
 
-    pub fn get_ssid(&self) -> String {
-        self.read_string(KEY_SSID, "ESP-Nrf Proxy")
+    pub fn get_sta_ssid(&self) -> String {
+        self.read_string(KEY_STA_SSID, "")
     }
 
-    pub fn get_passphrase(&self) -> String {
-        self.read_string(KEY_PASSPHRASE, "")
+    pub fn get_sta_passphrase(&self) -> String {
+        self.read_string(KEY_STA_PASSPHRASE, "")
     }
 
-    pub fn get_hidden_ssid(&self) -> bool {
-        self.read_u8(KEY_SSID_HIDDEN, 0) == 1
+    pub fn get_ap_ssid(&self) -> String {
+        self.read_string(KEY_AP_SSID, "ESP-WiFi Proxy")
     }
 
-    pub fn set_ssid(&mut self, value: &str) -> Result<(), StringEspError> {
-        self.store_string(KEY_SSID, value, 32)
+    pub fn get_ap_passphrase(&self) -> String {
+        self.read_string(KEY_AP_PASSPHRASE, "")
     }
 
-    pub fn set_passphrase(&mut self, value: &str) -> Result<(), StringEspError> {
-        self.store_string(KEY_PASSPHRASE, value, 63)
+    pub fn get_ap_hidden_ssid(&self) -> bool {
+        self.read_u8(KEY_AP_SSID_HIDDEN, 0) == 1
     }
 
-    pub fn set_hidden_ssid(&mut self, value: bool) -> Result<(), StringEspError> {
-        self.store_u8(KEY_SSID_HIDDEN, if value { 1 } else { 0 })
+    pub fn get_mqtt_server(&self) -> String {
+        self.read_string(KEY_MQTT_SERVER, "")
+    }
+
+    pub fn get_mqtt_port(&self) -> u16 {
+        self.read_u16(KEY_MQTT_PORT, 1883)
+    }
+
+    pub fn set_sta_ssid(&mut self, value: &str) -> Result<(), StringEspError> {
+        self.store_string(KEY_STA_SSID, value, 32)
+    }
+
+    pub fn set_sta_passphrase(&mut self, value: &str) -> Result<(), StringEspError> {
+        self.store_string(KEY_STA_PASSPHRASE, value, 63)
+    }
+
+    pub fn set_ap_ssid(&mut self, value: &str) -> Result<(), StringEspError> {
+        self.store_string(KEY_AP_SSID, value, 32)
+    }
+
+    pub fn set_ap_passphrase(&mut self, value: &str) -> Result<(), StringEspError> {
+        self.store_string(KEY_AP_PASSPHRASE, value, 63)
+    }
+
+    pub fn set_ap_hidden_ssid(&mut self, value: bool) -> Result<(), StringEspError> {
+        self.store_u8(KEY_AP_SSID_HIDDEN, if value { 1 } else { 0 })
+    }
+
+    pub fn set_mqtt_server(&mut self, value: &str) -> Result<(), StringEspError> {
+        self.store_string(KEY_MQTT_SERVER, value, 128)
+    }
+
+    pub fn set_mqtt_port(&mut self, value: u16) -> Result<(), StringEspError> {
+        self.store_u16(KEY_MQTT_PORT, value)
     }
 
     fn store_string(
@@ -104,6 +140,16 @@ impl NvsConfiguration {
 
     fn read_u8(&self, key: &str, default: u8) -> u8 {
         self.nvs.get_u8(key).unwrap_or(None).unwrap_or(default)
+    }
+
+    fn store_u16(&mut self, key: &str, value: u16) -> Result<(), StringEspError> {
+        self.nvs
+            .set_u16(key, value)
+            .map_err(|e| StringEspError("Failed to store U8", e))
+    }
+
+    fn read_u16(&self, key: &str, default: u16) -> u16 {
+        self.nvs.get_u16(key).unwrap_or(None).unwrap_or(default)
     }
 
     fn trunc_pad_string(s: &str, max: usize) -> String {
