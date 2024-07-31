@@ -34,6 +34,7 @@ fn main() -> anyhow::Result<()> {
 
     let nvs_config = Arc::new(Mutex::new(NvsConfiguration::take().unwrap()));
     let wifi: Arc<Mutex<BlockingWifi<EspWifi>>>;
+    let mqtt_client: Arc<Mutex<EspMqttClient<'static>>>;
 
     let peripherals = Peripherals::take()?;
     let pins = peripherals.pins;
@@ -66,6 +67,7 @@ fn main() -> anyhow::Result<()> {
 
         _http_server = create_http_config_server(nvs_config.clone(), wifi.clone())?;
     } else {
+        log::info!("PROXY MODE");
         leds.red.set_high()?;
 
         let ap_sta_wifi = create_ap_sta_wifi(peripherals.modem, &nvs_config.lock().unwrap());
@@ -79,13 +81,11 @@ fn main() -> anyhow::Result<()> {
 
         leds.red.set_low()?;
 
-        //wifi = Arc::new(Mutex::new(ap_sta_wifi.unwrap()));
-
-        _http_server = create_http_server()?;
+        wifi = Arc::new(Mutex::new(ap_sta_wifi.unwrap()));
 
         leds.green.set_high()?;
 
-        let mqtt_client = EspMqttClient::new_cb(
+        let mqtt = EspMqttClient::new_cb(
             &make_mqtt_url(&nvs_config.lock().unwrap()),
             &MqttClientConfiguration {
                 client_id: Some(MQTT_CLIENT_ID),
@@ -96,16 +96,20 @@ fn main() -> anyhow::Result<()> {
             },
         );
 
-        if mqtt_client.is_err() {
+        if mqtt.is_err() {
             log::error!(
                 "Failed to connect MQTT client (Error: {:?})",
-                mqtt_client.as_ref().err().unwrap()
+                mqtt.as_ref().err().unwrap()
             );
 
             flash_led_and_restart(&mut leds.green, 5);
         }
 
+        mqtt_client = Arc::new(Mutex::new(mqtt.unwrap()));
+
         leds.green.set_low()?;
+
+        _http_server = create_http_server(mqtt_client.clone())?;
     }
 
     loop {
@@ -136,5 +140,9 @@ fn flash_led_and_restart<T: OutputPin>(led: &mut PinDriver<T, Output>, timeout_s
 }
 
 fn make_mqtt_url(config: &NvsConfiguration) -> String {
-    format!("{}:{}", config.get_mqtt_server(), config.get_mqtt_port())
+    format!(
+        "mqtt://{}:{}",
+        config.get_mqtt_server(),
+        config.get_mqtt_port()
+    )
 }
