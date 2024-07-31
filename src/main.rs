@@ -1,3 +1,5 @@
+#![allow(unused_assignments)]
+
 use std::{
     sync::{Arc, Mutex},
     time::SystemTime,
