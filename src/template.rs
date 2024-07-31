@@ -34,17 +34,15 @@ pub fn to_html(
 fn accespoint_to_template(aps: Option<Vec<AccessPointInfo>>) -> String {
     let mut result = String::new();
 
-    if aps.is_none() {
-        return result;
-    } else {
+    result += "[";
+    if aps.is_some() {
         let aps = aps.unwrap();
 
-        result += "[";
         for ap in aps {
             result += &format!("{{ssid:\"{}\",rssi:{}}},", ap.ssid, ap.signal_strength);
         }
-        result += "]";
     }
+    result += "]";
 
     result
 }
