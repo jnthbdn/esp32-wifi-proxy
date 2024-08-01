@@ -8,7 +8,7 @@ use esp_idf_svc::{
     io::Write,
     wifi::{BlockingWifi, EspWifi},
 };
-use serde_json::{Map, Value};
+use serde_json::{json, Map, Value};
 use url_encoded_data::UrlEncodedData;
 
 use crate::{nvs_configuration::NvsConfiguration, template};
@@ -155,20 +155,26 @@ pub fn create_http_server<'a>(
 
             let json = json.unwrap();
 
-            if !object_contains_keys(&json, &["soil_moisture"]) {
+            if !object_contains_keys(&json, &["level", "battery"]) {
                 req.into_status_response(400)?
                     .write_all("Missing keys".as_bytes())?;
                 return Ok(());
             }
 
-            if json["soil_moisture"].is_f64() {
-                mqtt.lock().unwrap().publish(
-                    &format!("soil_moisture/{}", json["id"].as_str().unwrap()),
-                    QoS::AtLeastOnce,
-                    false,
-                    format!("{:.2}", json["soil_moisture"].as_f64().unwrap()).as_bytes(),
-                )?;
-            }
+            mqtt.lock().unwrap().publish(
+                &format!(
+                    "sensor/soil_moisture/{}",
+                    json["id"].as_str().ok_or(anyhow::Error::msg("Bad ID"))?
+                ),
+                QoS::AtLeastOnce,
+                false,
+                json!({
+                    "level": json["level"],
+                    "battery": json["battery"]
+                })
+                .to_string()
+                .as_bytes(),
+            )?;
 
             req.into_status_response(200)?;
             Ok(())
@@ -187,20 +193,27 @@ pub fn create_http_server<'a>(
 
         let json = json.unwrap();
 
-        if !object_contains_keys(&json, &["water_level"]) {
+        if !object_contains_keys(&json, &["level", "measure", "battery"]) {
             req.into_status_response(400)?
                 .write_all("Missing keys".as_bytes())?;
             return Ok(());
         }
 
-        if json["water_level"].is_f64() {
-            mqtt.lock().unwrap().publish(
-                &format!("water_level/{}", json["id"].as_str().unwrap()),
-                QoS::AtLeastOnce,
-                false,
-                format!("{:.2}", json["water_level"].as_f64().unwrap()).as_bytes(),
-            )?;
-        }
+        mqtt.lock().unwrap().publish(
+            &format!(
+                "sensor/water_level/{}",
+                json["id"].as_str().ok_or(anyhow::Error::msg("Bad ID"))?
+            ),
+            QoS::AtLeastOnce,
+            false,
+            json!({
+                "level": json["level"],
+                "raw": json["measure"],
+                "battery": json["battery"]
+            })
+            .to_string()
+            .as_bytes(),
+        )?;
 
         req.into_status_response(200)?;
         Ok(())
